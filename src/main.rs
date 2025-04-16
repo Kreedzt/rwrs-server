@@ -12,9 +12,12 @@ struct Config {
 impl Config {
     pub fn new() -> Result<Config, &'static str> {
         let host = env::var("HOST").unwrap_or(String::from("127.0.0.1")); // IP地址
-        let port = env::var("PORT").unwrap_or(String::from("5800"));      // 端口号
-        
-        Ok(Config { port: port.to_string(), host: host.to_string() })
+        let port = env::var("PORT").unwrap_or(String::from("5800")); // 端口号
+
+        Ok(Config {
+            port: port.to_string(),
+            host: host.to_string(),
+        })
     }
 }
 
