@@ -35,7 +35,19 @@ By default, the server will start on `127.0.0.1:5800`. You can modify this using
 ```bash
 # Custom IP and port
 HOST=0.0.0.0 PORT=8080 cargo run
+
+# Custom cache and rate limiting settings
+CACHE_DURATION_SECS=60 RATE_LIMIT_SECS=10 cargo run
 ```
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|----------|-------------|
+| `HOST` | `127.0.0.1` | Server bind address |
+| `PORT` | `5800` | Server port |
+| `CACHE_DURATION_SECS` | `3` | Cache expiry time in seconds |
+| `RATE_LIMIT_SECS` | `3` | Rate limit interval in seconds |
 
 ## Building
 
