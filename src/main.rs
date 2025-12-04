@@ -6,6 +6,69 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tracing::{error, info, warn};
+use serde::{Deserialize, Serialize};
+
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MapsConfig {
+    maps: Vec<MapEntry>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MapEntry {
+    name: String,
+    path: String,
+    image: String,
+}
+
+impl MapsConfig {
+    pub fn new() -> Self {
+        Self {
+            maps: Vec::new(),
+        }
+    }
+
+    pub async fn load_from_file(file_path: &str) -> Result<Self, String> {
+        let current_dir = match std::env::current_dir() {
+            Ok(dir) => dir,
+            Err(e) => {
+                error!("Failed to get current directory: {}", e);
+                return Err(format!("Failed to get current directory: {}", e));
+            }
+        };
+
+        let full_path = if std::path::Path::new(file_path).is_absolute() {
+            file_path.to_string()
+        } else {
+            current_dir.join(file_path).to_string_lossy().to_string()
+        };
+
+        info!("Loading maps configuration from: {} (full path: {})", file_path, full_path);
+
+        let content = match tokio::fs::read_to_string(&full_path).await {
+            Ok(content) => content,
+            Err(e) => {
+                error!("Failed to read maps config file '{}': {}", full_path, e);
+                return Err(format!("Failed to read maps config file '{}': {}", full_path, e));
+            }
+        };
+
+        let config: MapsConfig = match serde_json::from_str(&content) {
+            Ok(config) => config,
+            Err(e) => {
+                error!("Failed to parse maps config file '{}': {}", full_path, e);
+                return Err(format!("Failed to parse maps config file '{}': {}", full_path, e));
+            }
+        };
+
+        info!("Successfully loaded {} map entries from config file", config.maps.len());
+        Ok(config)
+    }
+
+    pub fn get_maps(&self) -> Vec<MapEntry> {
+        self.maps.clone()
+    }
+}
 
 #[derive(Debug, Clone)]
 struct CachedResponse {
@@ -33,6 +96,7 @@ struct Config {
     host: String,
     cache_duration_secs: u64,
     rate_limit_duration_secs: u64,
+    maps_config_path: String,
 }
 
 impl Config {
@@ -52,11 +116,16 @@ impl Config {
             .and_then(|s| s.parse().ok())
             .unwrap_or(3);
 
+        // Maps config file path, default "maps.json"
+        let maps_config_path = env::var("MAPS_CONFIG")
+            .unwrap_or_else(|_| "maps.json".to_string());
+
         Ok(Config {
             port: port.to_string(),
             host: host.to_string(),
             cache_duration_secs,
             rate_limit_duration_secs,
+            maps_config_path,
         })
     }
 }
@@ -160,6 +229,14 @@ async fn ping() -> &'static str {
 }
 
 #[handler]
+async fn maps_handler(depot: &mut Depot, res: &mut Response) {
+    let maps_config = depot.obtain::<Arc<MapsConfig>>().unwrap();
+    let maps = maps_config.get_maps();
+
+    res.render(Json(&maps));
+}
+
+#[handler]
 async fn proxy_handler(req: &mut Request, depot: &mut Depot, res: &mut Response) {
     // Get cache from depot
     let cache = depot.obtain::<Arc<ServerListCache>>().unwrap();
@@ -198,13 +275,25 @@ async fn main() {
     // Create cache instance
     let cache = Arc::new(ServerListCache::new(c.rate_limit_duration_secs, c.cache_duration_secs));
 
+    // Load maps configuration
+    info!("Loading maps configuration from: {}", c.maps_config_path);
+    let maps_config = match MapsConfig::load_from_file(&c.maps_config_path).await {
+        Ok(config) => Arc::new(config),
+        Err(e) => {
+            error!("Failed to load maps configuration: {}. Using empty configuration.", e);
+            Arc::new(MapsConfig::new())
+        }
+    };
+
     info!("Cache and rate limiting mechanism enabled:");
     info!("  - Rate limit interval: {} seconds", c.rate_limit_duration_secs);
     info!("  - Cache expiry time: {} seconds", c.cache_duration_secs);
+    info!("  - Maps config file: {}", c.maps_config_path);
 
     let router = Router::new()
         .hoop(RequestId::new())
         .push(Router::new().path("/ping").get(ping))
+        .push(Router::new().path("/api/maps").hoop(affix_state::inject(maps_config.clone())).get(maps_handler))
         .push(Router::new()
             .path("/api/server_list")
             .hoop(affix_state::inject(cache.clone()))
