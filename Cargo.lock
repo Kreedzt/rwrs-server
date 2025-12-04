@@ -1911,6 +1911,8 @@ version = "0.2.0"
 dependencies = [
  "reqwest",
  "salvo",
+ "serde",
+ "serde_json",
  "tokio",
  "tracing",
  "tracing-subscriber",

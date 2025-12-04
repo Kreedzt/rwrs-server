@@ -4,7 +4,7 @@ Backend server for [rwrs-another-page](https://github.com/Kreedzt/rwrs-another-p
 
 ## Introduction
 
-This project serves as the backend for [rwrs-another-page](https://github.com/Kreedzt/rwrs-another-page), developed using Rust and the Salvo framework. Its primary function is to proxy API requests for the Running with Rifles game server list and provide static file serving.
+This project serves as the backend for [rwrs-another-page](https://github.com/Kreedzt/rwrs-another-page), developed using Rust and the Salvo framework. Its primary function is to proxy API requests for the Running with Rifles game server list, provide static file serving, and serve game map configuration data.
 
 ## Development
 
@@ -46,8 +46,103 @@ CACHE_DURATION_SECS=60 RATE_LIMIT_SECS=10 cargo run
 |----------|----------|-------------|
 | `HOST` | `127.0.0.1` | Server bind address |
 | `PORT` | `5800` | Server port |
+| `MAPS_CONFIG` | `maps.json` | Maps configuration file path |
 | `CACHE_DURATION_SECS` | `3` | Cache expiry time in seconds |
 | `RATE_LIMIT_SECS` | `3` | Rate limit interval in seconds |
+
+## Maps Configuration
+
+The server provides a `/api/maps` endpoint that returns game map configuration data. Maps are configured through a JSON file specified by the `MAPS_CONFIG` environment variable (default: `maps.json`).
+
+### Custom Configuration File Path
+
+You can specify a custom location for the maps configuration file:
+
+```bash
+# Use a custom configuration file
+MAPS_CONFIG=/etc/rwrs/custom-maps.json cargo run
+
+# In Docker
+docker run -e MAPS_CONFIG=/config/maps.json -v $(pwd)/maps.json:/config/maps.json rwrs-server
+```
+
+### Maps Configuration File Format
+
+Create a `maps.json` file in the same directory as the executable (or specify a custom path):
+
+```json
+{
+  "maps": [
+    {
+      "name": "map9",
+      "path": "media/packages/vanilla.desert/maps/map9",
+      "image": "md5_1.png"
+    },
+    {
+      "name": "map10",
+      "path": "media/packages/vanilla.desert/maps/map10",
+      "image": "md5_2.png"
+    },
+    {
+      "name": "map5",
+      "path": "media/packages/vanilla.jungle/maps/map5",
+      "image": "md5_3.png"
+    }
+  ]
+}
+```
+
+#### Map Fields
+
+- **`name`**: Human-readable map name (e.g., "map9")
+- **`path`**: Full game path for the map (used as unique identifier)
+- **`image`**: Image filename or CDN URL for the map preview
+
+### API Endpoint
+
+**GET** `/api/maps`
+
+Returns a JSON response with all configured maps:
+
+```json
+{
+  "maps": [
+    {
+      "name": "map9",
+      "path": "media/packages/vanilla.desert/maps/map9",
+      "image": "md5_1.png"
+    }
+  ]
+}
+```
+
+### Configuration Examples
+
+#### Basic Local Images
+```json
+{
+  "maps": [
+    {
+      "name": "desert_outpost",
+      "path": "media/packages/vanilla.desert/maps/map9",
+      "image": "desert_outpost.png"
+    }
+  ]
+}
+```
+
+#### CDN Images
+```json
+{
+  "maps": [
+    {
+      "name": "desert_outpost",
+      "path": "media/packages/vanilla.desert/maps/map9",
+      "image": "https://cdn.example.com/maps/desert_outpost.png"
+    }
+  ]
+}
+```
 
 ## Building
 
@@ -89,7 +184,14 @@ docker build -t rwrs-server .
    cp -r /path/to/rwrs-another-page/dist/* ./static/
    ```
 
-5. Set environment variables and run:
+5. Copy or create the `maps.json` configuration file in the same directory:
+   ```bash
+   # Copy the example maps.json
+   cp maps.json ./deploy/maps.json
+   # Or create a custom one based on the examples above
+   ```
+
+6. Set environment variables and run:
    ```bash
    HOST=0.0.0.0 PORT=80 ./target/release/rwrs-server
    ```
@@ -141,8 +243,24 @@ You can also deploy by serving the frontend directly from the rwrs-server's stat
 
    Or mount the directory when starting the container:
    ```bash
-   docker run -d -p 80:80 --name rwrs-server -e HOST=0.0.0.0 -e PORT=80 -v $(pwd)/dist:/static zhaozisong0/rwrs-server:latest
+   docker run -d -p 80:80 --name rwrs-server -e HOST=0.0.0.0 -e PORT=80 \
+     -v $(pwd)/dist:/static \
+     -v $(pwd)/maps.json:/maps.json \
+     zhaozisong0/rwrs-server:latest
    ```
+
+#### Using Custom Maps Configuration Path
+
+If you want to use a custom location for the maps configuration:
+
+```bash
+docker run -d -p 80:80 --name rwrs-server \
+  -e HOST=0.0.0.0 -e PORT=80 \
+  -e MAPS_CONFIG=/config/custom-maps.json \
+  -v $(pwd)/dist:/static \
+  -v $(pwd)/config/custom-maps.json:/config/custom-maps.json \
+  zhaozisong0/rwrs-server:latest
+```
 
 #### Using Docker Compose
 
@@ -158,10 +276,33 @@ services:
     environment:
       - HOST=0.0.0.0
       - PORT=80
+      - MAPS_CONFIG=/config/maps.json
     restart: always
-    # Optional: Mount frontend build to static directory
-    # volumes:
-    #   - ./dist:/static
+    volumes:
+      # Mount frontend build to static directory
+      - ./dist:/static
+      # Mount maps configuration
+      - ./maps.json:/config/maps.json
+```
+
+#### With Custom Maps Configuration
+
+```yaml
+version: '3'
+services:
+  rwrs-server:
+    image: zhaozisong0/rwrs-server:latest
+    ports:
+      - "8080:5800"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=5800
+      - MAPS_CONFIG=/app/config/custom-maps.json
+      - CACHE_DURATION_SECS=10
+    restart: always
+    volumes:
+      - ./dist:/static
+      - ./config/custom-maps.json:/app/config/custom-maps.json
 ```
 
 ## License
