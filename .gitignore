@@ -12,6 +12,10 @@ Cargo.lock
 # Static files
 /static/
 
+# Configuration files (should be created locally)
+maps.json
+*.json
+
 # Coverage reports
 *.profraw
 lcov.info
