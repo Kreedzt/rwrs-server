@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use tempfile::tempdir;
-    use std::fs;
     use crate::MapsConfig;
+    use std::fs;
+    use tempfile::tempdir;
 
     #[tokio::test]
     async fn test_load_valid_config_file() {
@@ -32,7 +32,9 @@ mod tests {
         fs::write(&file_path, test_config).unwrap();
 
         // Load the configuration
-        let config = MapsConfig::load_from_file(file_path.to_str().unwrap()).await.unwrap();
+        let config = MapsConfig::load_from_file(file_path.to_str().unwrap())
+            .await
+            .unwrap();
         let maps = config.get_maps();
 
         // Verify the loaded maps
@@ -58,7 +60,9 @@ mod tests {
 
         fs::write(&file_path, test_config).unwrap();
 
-        let config = MapsConfig::load_from_file(file_path.to_str().unwrap()).await.unwrap();
+        let config = MapsConfig::load_from_file(file_path.to_str().unwrap())
+            .await
+            .unwrap();
         assert_eq!(config.get_maps().len(), 0);
     }
 
@@ -66,6 +70,10 @@ mod tests {
     async fn test_load_nonexistent_file() {
         let result = MapsConfig::load_from_file("nonexistent_file.json").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Failed to read maps config file"));
+        assert!(
+            result
+                .unwrap_err()
+                .contains("Failed to read maps config file")
+        );
     }
 }

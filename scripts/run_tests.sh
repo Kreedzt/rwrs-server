@@ -10,7 +10,7 @@ if ! cargo llvm-cov --version >/dev/null 2>&1; then
 fi
 
 # Run tests with coverage
-cargo llvm-cov --all-features --lib --html
+cargo llvm-cov --all-features --lib --bins --html
 
 # Show coverage report path
 echo ""

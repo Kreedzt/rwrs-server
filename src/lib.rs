@@ -1,10 +1,9 @@
+use serde::{Deserialize, Serialize};
 use std::env;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tracing::{error, info, warn};
-use serde::{Deserialize, Serialize};
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MapsConfig {
@@ -18,11 +17,15 @@ pub struct MapEntry {
     pub image: String,
 }
 
+impl Default for MapsConfig {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MapsConfig {
     pub fn new() -> Self {
-        Self {
-            maps: Vec::new(),
-        }
+        Self { maps: Vec::new() }
     }
 
     pub async fn load_from_file(file_path: &str) -> Result<Self, String> {
@@ -40,13 +43,19 @@ impl MapsConfig {
             current_dir.join(file_path).to_string_lossy().to_string()
         };
 
-        info!("Loading maps configuration from: {} (full path: {})", file_path, full_path);
+        info!(
+            "Loading maps configuration from: {} (full path: {})",
+            file_path, full_path
+        );
 
         let content = match tokio::fs::read_to_string(&full_path).await {
             Ok(content) => content,
             Err(e) => {
                 error!("Failed to read maps config file '{}': {}", full_path, e);
-                return Err(format!("Failed to read maps config file '{}': {}", full_path, e));
+                return Err(format!(
+                    "Failed to read maps config file '{}': {}",
+                    full_path, e
+                ));
             }
         };
 
@@ -54,11 +63,17 @@ impl MapsConfig {
             Ok(config) => config,
             Err(e) => {
                 error!("Failed to parse maps config file '{}': {}", full_path, e);
-                return Err(format!("Failed to parse maps config file '{}': {}", full_path, e));
+                return Err(format!(
+                    "Failed to parse maps config file '{}': {}",
+                    full_path, e
+                ));
             }
         };
 
-        info!("Successfully loaded {} map entries from config file", config.maps.len());
+        info!(
+            "Successfully loaded {} map entries from config file",
+            config.maps.len()
+        );
         Ok(config)
     }
 
@@ -128,8 +143,7 @@ impl Config {
             .unwrap_or(3);
 
         // Maps config file path, default "maps.json"
-        let maps_config_path = env::var("MAPS_CONFIG")
-            .unwrap_or_else(|_| "maps.json".to_string());
+        let maps_config_path = env::var("MAPS_CONFIG").unwrap_or_else(|_| "maps.json".to_string());
 
         // Repository URLs for version info
         let android_repo_url = env::var("ANDROID_REPO_URL").ok();
@@ -158,7 +172,9 @@ impl ApiCache {
     pub fn new(rate_limit_secs: u64, cache_expiry_secs: u64) -> Self {
         Self {
             cache: Arc::new(RwLock::new(None)),
-            last_request_time: Arc::new(RwLock::new(Instant::now() - Duration::from_secs(rate_limit_secs + 1))),
+            last_request_time: Arc::new(RwLock::new(
+                Instant::now() - Duration::from_secs(rate_limit_secs + 1),
+            )),
             rate_limit_duration: Duration::from_secs(rate_limit_secs),
             cache_expiry_duration: Duration::from_secs(cache_expiry_secs),
         }
@@ -251,7 +267,10 @@ pub async fn get_latest_tag(repo_url: &str) -> Option<(String, String)> {
     let repo = url_parts[4];
 
     // Use GitHub API to get the latest release
-    let api_url = format!("https://api.github.com/repos/{}/{}/releases/latest", owner, repo);
+    let api_url = format!(
+        "https://api.github.com/repos/{}/{}/releases/latest",
+        owner, repo
+    );
 
     let client = reqwest::Client::builder()
         .user_agent("rwrs-server")
@@ -261,13 +280,16 @@ pub async fn get_latest_tag(repo_url: &str) -> Option<(String, String)> {
 
     match client.get(&api_url).send().await {
         Ok(response) => {
-            if response.status().is_success() {
-                if let Ok(release_info) = response.json::<serde_json::Value>().await {
-                    let tag_name = release_info.get("tag_name")?.as_str()?.to_string();
-                    // Return URL to the release page instead of zipball
-                    let release_url = format!("https://github.com/{}/{}/releases/tag/{}", owner, repo, tag_name);
-                    return Some((tag_name, release_url));
-                }
+            if response.status().is_success()
+                && let Ok(release_info) = response.json::<serde_json::Value>().await
+            {
+                let tag_name = release_info.get("tag_name")?.as_str()?.to_string();
+                // Return URL to the release page instead of zipball
+                let release_url = format!(
+                    "https://github.com/{}/{}/releases/tag/{}",
+                    owner, repo, tag_name
+                );
+                return Some((tag_name, release_url));
             }
         }
         Err(e) => {

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::{Config, MapsConfig, VersionInfo, RepoVersion, MapEntry};
+    use crate::{Config, MapEntry, MapsConfig, RepoVersion, VersionInfo};
 
     #[tokio::test]
     async fn test_config_default_values() {

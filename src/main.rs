@@ -1,14 +1,11 @@
+use salvo::affix_state;
 use salvo::prelude::*;
 use salvo::serve_static::StaticDir;
-use salvo::affix_state;
 use std::sync::Arc;
 use tracing::{error, info};
 
 // Import from lib.rs
-use rwrs_server::{
-    Config, MapsConfig, ApiCache, VersionInfo, RepoVersion,
-    get_latest_tag
-};
+use rwrs_server::{ApiCache, Config, MapsConfig, RepoVersion, VersionInfo, get_latest_tag};
 
 #[handler]
 async fn ping() -> &'static str {
@@ -136,21 +133,36 @@ async fn main() {
     info!("listening at {}", listen_addr);
 
     // Create cache instance
-    let cache = Arc::new(ApiCache::new(config.rate_limit_duration_secs, config.cache_duration_secs));
+    let cache = Arc::new(ApiCache::new(
+        config.rate_limit_duration_secs,
+        config.cache_duration_secs,
+    ));
 
     // Load maps configuration
-    info!("Loading maps configuration from: {}", config.maps_config_path);
+    info!(
+        "Loading maps configuration from: {}",
+        config.maps_config_path
+    );
     let maps_config = match MapsConfig::load_from_file(&config.maps_config_path).await {
         Ok(maps) => Arc::new(maps),
         Err(e) => {
-            error!("Failed to load maps configuration: {}. Using empty configuration.", e);
+            error!(
+                "Failed to load maps configuration: {}. Using empty configuration.",
+                e
+            );
             Arc::new(MapsConfig::new())
         }
     };
 
     info!("Cache and rate limiting mechanism enabled:");
-    info!("  - Rate limit interval: {} seconds", config.rate_limit_duration_secs);
-    info!("  - Cache expiry time: {} seconds", config.cache_duration_secs);
+    info!(
+        "  - Rate limit interval: {} seconds",
+        config.rate_limit_duration_secs
+    );
+    info!(
+        "  - Cache expiry time: {} seconds",
+        config.cache_duration_secs
+    );
     info!("  - Maps config file: {}", config.maps_config_path);
     if let Some(ref url) = config.android_repo_url {
         info!("  - Android repo URL: {}", url);
@@ -165,20 +177,31 @@ async fn main() {
     let router = Router::new()
         .hoop(RequestId::new())
         .push(Router::new().path("/ping").get(ping))
-        .push(Router::new().path("/api/version").hoop(affix_state::inject(config.clone())).get(version_handler))
-        .push(Router::new().path("/api/maps").hoop(affix_state::inject(maps_config.clone())).get(maps_handler))
-        .push(Router::new()
-            .path("/api/server_list")
-            .hoop(affix_state::inject(cache.clone()))
-            .goal(servers_handler)
+        .push(
+            Router::new()
+                .path("/api/version")
+                .hoop(affix_state::inject(config.clone()))
+                .get(version_handler),
         )
-        .push(Router::new()
-            .path("/api/player_list")
-            .hoop(affix_state::inject(cache.clone()))
-            .goal(players_handler)
+        .push(
+            Router::new()
+                .path("/api/maps")
+                .hoop(affix_state::inject(maps_config.clone()))
+                .get(maps_handler),
         )
-        .push(Router::with_path("{**path}")
-            .get(StaticDir::new(["static"]).defaults("index.html")));
+        .push(
+            Router::new()
+                .path("/api/server_list")
+                .hoop(affix_state::inject(cache.clone()))
+                .goal(servers_handler),
+        )
+        .push(
+            Router::new()
+                .path("/api/player_list")
+                .hoop(affix_state::inject(cache.clone()))
+                .goal(players_handler),
+        )
+        .push(Router::with_path("{**path}").get(StaticDir::new(["static"]).defaults("index.html")));
 
     let service = Service::new(router).hoop(Logger::new());
     let acceptor = TcpListener::new(listen_addr).bind().await;

@@ -28,7 +28,6 @@ jobs:
       uses: dtolnay/rust-toolchain@master
       with:
         toolchain: ${{ matrix.rust }}
-        components: llvm-tools-preview
 
     - name: Cache cargo registry
       uses: actions/cache@v4
@@ -42,8 +41,17 @@ jobs:
     - name: Install cargo-llvm-cov
       uses: taiki-e/install-action@cargo-llvm-cov
 
+    - name: Run tests
+      run: cargo test --all-features
+
     - name: Run tests with coverage
-      run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+      if: matrix.rust == 'stable'  # Only run coverage on stable
+      run: |
+        echo "Generating coverage reports..."
+        cargo llvm-cov --all-features --lib --bins --html --output-dir target/llvm-cov
+        echo "Generating LCOV report..."
+        cargo llvm-cov --all-features --lib --bins --lcov --output-path lcov.info
+        echo "Coverage reports generated"
 
     - name: Upload coverage to Codecov
       if: matrix.rust == 'stable'  # Only upload from stable toolchain
