@@ -153,13 +153,12 @@ jobs:
           cargo install cargo-llvm-cov
         fi
 
-        # Generate coverage report in LCOV format for SonarQube
+        # Generate coverage report in formats SonarQube can consume
         cargo clean
-        cargo llvm-cov --all-features --lib --bins --lcov --output-path lcov.info
         cargo llvm-cov --all-features --lib --bins --html --output-dir target/llvm-cov
+        cargo llvm-cov --all-features --lib --bins --cobertura --output-path coverage.xml
 
-        # Try using the same LCOV file that codecov uses
-        # SonarQube should be able to parse LCOV format
+        # coverage.xml is referenced by sonar-project.properties for analysis
 
     - name: SonarQube Scan
       uses: SonarSource/sonarqube-scan-action@v6
