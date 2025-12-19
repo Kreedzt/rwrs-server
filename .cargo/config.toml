@@ -1,0 +1,7 @@
+[build]
+# Coverage instrumentation is managed by cargo-llvm-cov during CI runs.
+# Keep default rustflags empty to avoid coverage link errors (e.g., missing -lcov on Linux runners).
+
+[env]
+# Placeholder for per-run coverage files when cargo-llvm-cov sets instrumentation.
+LLVM_PROFILE_FILE = "target/coverage/rwrs-server-%p-%m.profraw"

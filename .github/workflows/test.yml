@@ -1,0 +1,165 @@
+name: Test, Coverage and Quality Analysis
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust:
+          - stable
+          - beta
+          - nightly
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust }}
+        components: llvm-tools-preview
+
+    - name: Cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Install cargo-llvm-cov
+      if: matrix.rust == 'stable'
+      uses: taiki-e/install-action@cargo-llvm-cov
+      with:
+        version: v0.1.27
+
+    - name: Clean build environment
+      run: |
+        cargo clean
+
+    - name: Run tests without coverage
+      env:
+        # Ensure plain tests don't pick up any coverage instrumentation flags
+        RUSTFLAGS: ""
+        CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS: ""
+      run: |
+        # Ensure we're not accidentally using coverage instrumentation
+        cargo test --all-features
+
+    - name: Clean and run coverage
+      if: matrix.rust == 'stable'  # Only run coverage on stable
+      run: |
+        # Clean before coverage to ensure fresh build
+        cargo clean
+        echo "Generating coverage reports..."
+        cargo llvm-cov --all-features --lib --bins --html --output-dir target/llvm-cov
+        echo "Generating LCOV report..."
+        cargo llvm-cov --all-features --lib --bins --lcov --output-path lcov.info
+        echo "Coverage reports generated"
+
+    - name: Upload coverage to Codecov
+      if: matrix.rust == 'stable'  # Only upload from stable toolchain
+      uses: codecov/codecov-action@v4
+      with:
+        files: lcov.info
+        fail_ci_if_error: true
+        verbose: true
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy
+
+    - name: Cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Run clippy
+      run: cargo clippy --all-features -- -D warnings
+
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Check formatting
+      run: cargo fmt --all -- --check
+
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install cargo-audit
+      uses: taiki-e/install-action@cargo-audit
+
+    - name: Run security audit
+      run: cargo audit --db ./audit.toml || true
+
+  sonarqube:
+    name: SonarQube Quality Analysis
+    runs-on: ubuntu-latest
+    needs: [test, clippy, fmt, audit]  # Run after all other checks pass
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository  # Only for main repo PRs
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for better relevancy of analysis
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: 17
+        distribution: 'temurin'
+
+    - name: Generate coverage report for SonarQube
+      run: |
+        # Install cargo-llvm-cov if not present
+        if ! cargo llvm-cov --version >/dev/null 2>&1; then
+          cargo install cargo-llvm-cov
+        fi
+
+        # Generate coverage report in Cobertura XML format for SonarQube
+        cargo clean
+        cargo llvm-cov --all-features --lib --bins --cobertura --output-path coverage.xml
+        cargo llvm-cov --all-features --lib --bins --html --output-dir target/llvm-cov
+
+    - name: SonarQube Scan
+      uses: SonarSource/sonarqube-scan-action@v6
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
