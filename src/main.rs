@@ -150,14 +150,14 @@ impl Config {
     }
 }
 
-struct ServerListCache {
+struct ApiCache {
     cache: Arc<RwLock<Option<CachedResponse>>>,
     last_request_time: Arc<RwLock<Instant>>,
     rate_limit_duration: Duration,
     cache_expiry_duration: Duration,
 }
 
-impl ServerListCache {
+impl ApiCache {
     fn new(rate_limit_secs: u64, cache_expiry_secs: u64) -> Self {
         Self {
             cache: Arc::new(RwLock::new(None)),
@@ -167,7 +167,7 @@ impl ServerListCache {
         }
     }
 
-    async fn get_server_list(&self, url: &str) -> Result<(String, u16), String> {
+    async fn get_cached_response(&self, url: &str) -> Result<(String, u16), String> {
         let now = Instant::now();
 
         // Check cache
@@ -343,9 +343,9 @@ async fn version_handler(depot: &mut Depot, res: &mut Response) {
 }
 
 #[handler]
-async fn proxy_handler(req: &mut Request, depot: &mut Depot, res: &mut Response) {
+async fn servers_handler(req: &mut Request, depot: &mut Depot, res: &mut Response) {
     // Get cache from depot
-    let cache = depot.obtain::<Arc<ServerListCache>>().unwrap();
+    let cache = depot.obtain::<Arc<ApiCache>>().unwrap();
 
     // Get query string from original request
     let query_string = req.uri().query().unwrap_or("");
@@ -356,7 +356,7 @@ async fn proxy_handler(req: &mut Request, depot: &mut Depot, res: &mut Response)
         format!("{}?{}", base_url, query_string)
     };
 
-    match cache.get_server_list(&url).await {
+    match cache.get_cached_response(&url).await {
         Ok((data, status_code)) => {
             // Cache successful response
             res.status_code(StatusCode::from_u16(status_code).unwrap_or(StatusCode::OK));
@@ -370,6 +370,34 @@ async fn proxy_handler(req: &mut Request, depot: &mut Depot, res: &mut Response)
     }
 }
 
+#[handler]
+async fn players_handler(req: &mut Request, depot: &mut Depot, res: &mut Response) {
+    // Get cache from depot
+    let cache = depot.obtain::<Arc<ApiCache>>().unwrap();
+
+    // Get query string from original request
+    let query_string = req.uri().query().unwrap_or("");
+    let base_url = "http://rwr.runningwithrifles.com/rwr_stats/view_players.php";
+    let url = if query_string.is_empty() {
+        base_url.to_string()
+    } else {
+        format!("{}?{}", base_url, query_string)
+    };
+
+    match cache.get_cached_response(&url).await {
+        Ok((data, status_code)) => {
+            // Cache successful response
+            res.status_code(StatusCode::from_u16(status_code).unwrap_or(StatusCode::OK));
+            res.render(Text::Html(data));
+        }
+        Err(e) => {
+            error!("Failed to get players data: {}", e);
+            res.status_code(StatusCode::INTERNAL_SERVER_ERROR);
+            res.render(Text::Plain(format!("Unable to fetch players data: {}", e)));
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt().init();
@@ -379,7 +407,7 @@ async fn main() {
     info!("listening at {}", listen_addr);
 
     // Create cache instance
-    let cache = Arc::new(ServerListCache::new(config.rate_limit_duration_secs, config.cache_duration_secs));
+    let cache = Arc::new(ApiCache::new(config.rate_limit_duration_secs, config.cache_duration_secs));
 
     // Load maps configuration
     info!("Loading maps configuration from: {}", config.maps_config_path);
@@ -413,7 +441,12 @@ async fn main() {
         .push(Router::new()
             .path("/api/server_list")
             .hoop(affix_state::inject(cache.clone()))
-            .goal(proxy_handler)
+            .goal(servers_handler)
+        )
+        .push(Router::new()
+            .path("/api/player_list")
+            .hoop(affix_state::inject(cache.clone()))
+            .goal(players_handler)
         )
         .push(Router::with_path("{**path}")
             .get(StaticDir::new(["static"]).defaults("index.html")));

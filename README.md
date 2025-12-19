@@ -117,6 +117,26 @@ Returns game map configuration data. See the Maps Configuration section below fo
 
 Proxies requests to the Running with Rifles game server list API. Supports query parameters for filtering.
 
+### GET /api/player_list
+
+Proxies requests to the Running with Rifles player statistics API. Returns HTML content with player rankings and statistics. Supports query parameters for filtering and sorting.
+
+#### Query Parameters (Optional)
+
+You can pass query parameters to filter and sort the player data:
+- `sort`: Field to sort by (e.g., kills, deaths, score)
+- `order`: Sort order (asc, desc)
+- Other parameters supported by the original API
+
+Example:
+```bash
+# Get players sorted by kills in descending order
+curl "http://localhost:5800/api/player_list?sort=kills&order=desc"
+
+# Get all players
+curl http://localhost:5800/api/player_list
+```
+
 ## Maps Configuration
 
 Maps are configured through a JSON file specified by the `MAPS_CONFIG` environment variable (default: `maps.json`). The configuration is exposed via the `/api/maps` endpoint.
