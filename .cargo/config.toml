@@ -1,9 +1,7 @@
 [build]
-rustflags = ["-C", "instrument-coverage"]
+# Coverage instrumentation is managed by cargo-llvm-cov during CI runs.
+# Keep default rustflags empty to avoid coverage link errors (e.g., missing -lcov on Linux runners).
 
 [env]
+# Placeholder for per-run coverage files when cargo-llvm-cov sets instrumentation.
 LLVM_PROFILE_FILE = "target/coverage/rwrs-server-%p-%m.profraw"
-
-[target.x86_64-unknown-linux-gnu]
-rustflags = ["-C", "instrument-coverage", "-C", "link-arg=-lcov"]
-linker = "clang"

@@ -39,6 +39,7 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Install cargo-llvm-cov
+      if: matrix.rust == 'stable'
       uses: taiki-e/install-action@cargo-llvm-cov
       with:
         version: v0.1.27
@@ -48,6 +49,10 @@ jobs:
         cargo clean
 
     - name: Run tests without coverage
+      env:
+        # Ensure plain tests don't pick up any coverage instrumentation flags
+        RUSTFLAGS: ""
+        CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS: ""
       run: |
         # Ensure we're not accidentally using coverage instrumentation
         cargo test --all-features
