@@ -2,8 +2,8 @@
 
 Backend server for [rwrs-another-page](https://github.com/Kreedzt/rwrs-another-page).
 
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=your-username_rwrs-server&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=your-username_rwrs-server)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=your-username_rwrs-server&metric=coverage)](https://sonarcloud.io/summary/new_code?id=your-username_rwrs-server)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Kreedzt_rwrs-server&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Kreedzt_rwrs-server)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Kreedzt_rwrs-server&metric=coverage)](https://sonarcloud.io/summary/new_code?id=Kreedzt_rwrs-server)
 [![codecov](https://codecov.io/gh/Kreedzt/rwrs-server/branch/master/graph/badge.svg?token=MWGXZH7GO9)](https://codecov.io/gh/Kreedzt/rwrs-server)
 ![CI](https://github.com/Kreedzt/rwrs-server/actions/workflows/test.yml/badge.svg?branch=master)
 [![Docker Image Size](https://badgen.net/docker/size/zhaozisong0/rwrs-server?icon=docker&label=image%20size)](https://hub.docker.com/r/zhaozisong0/rwrs-server/)

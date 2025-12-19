@@ -153,10 +153,12 @@ jobs:
           cargo install cargo-llvm-cov
         fi
 
-        # Generate coverage report in Cobertura XML format for SonarQube
+        # Generate coverage report in formats SonarQube can consume
         cargo clean
-        cargo llvm-cov --all-features --lib --bins --cobertura --output-path coverage.xml
         cargo llvm-cov --all-features --lib --bins --html --output-dir target/llvm-cov
+        cargo llvm-cov --all-features --lib --bins --cobertura --output-path coverage.xml
+
+        # coverage.xml is referenced by sonar-project.properties for analysis
 
     - name: SonarQube Scan
       uses: SonarSource/sonarqube-scan-action@v6
