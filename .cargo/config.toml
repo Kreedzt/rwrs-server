@@ -1,0 +1,9 @@
+[build]
+rustflags = ["-C", "instrument-coverage"]
+
+[env]
+LLVM_PROFILE_FILE = "target/coverage/rwrs-server-%p-%m.profraw"
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "instrument-coverage", "-C", "link-arg=-lcov"]
+linker = "clang"

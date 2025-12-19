@@ -1,3 +1,40 @@
-/target
-/static
+# Rust
+/target/
+Cargo.lock
+**/*.rs.bk
+
+# IDE
 .idea/
+.vscode/
+*.swp
+*.swo
+
+# Static files
+/static/
+
+# Coverage reports
+*.profraw
+lcov.info
+coverage/
+htmlcov/
+
+# Test artifacts
+/test-reports/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/

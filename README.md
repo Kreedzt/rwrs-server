@@ -413,6 +413,62 @@ services:
       - ./config/custom-maps.json:/app/config/custom-maps.json
 ```
 
+## Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+cargo test
+
+# Run tests with output
+cargo test -- --nocapture
+
+# Run specific test module
+cargo test api_cache_tests
+
+# Run integration tests only
+cargo test --test '*'
+
+# Run tests with coverage (requires cargo-llvm-cov)
+cargo install cargo-llvm-cov
+cargo llvm-cov --all-features
+```
+
+### Test Coverage
+
+The project uses `cargo-llvm-cov` for code coverage reporting. Coverage reports are automatically generated on GitHub Actions and uploaded to Codecov.
+
+To generate coverage locally:
+
+```bash
+# Install cargo-llvm-cov
+cargo install cargo-llvm-cov
+
+# Generate coverage report
+cargo llvm-cov --all-features --html
+
+# View the HTML report
+open target/llvm-cov/html/index.html
+```
+
+### Test Structure
+
+- **Unit Tests**: Located in `tests/` directory
+  - `api_cache_tests.rs` - Tests for ApiCache functionality
+  - `maps_config_tests.rs` - Tests for MapsConfig loading and parsing
+  - `api_endpoints_tests.rs` - Integration tests for API endpoints
+  - `test_data/` - Test configuration and data files
+
+### Continuous Integration
+
+GitHub Actions automatically runs:
+- Unit tests across multiple Rust versions (stable, beta, nightly)
+- Code coverage reporting
+- Clippy linting
+- Code formatting checks
+- Security audits
+
 ## License
 
 - [MIT](./LICENSE).
