@@ -49,10 +49,77 @@ CACHE_DURATION_SECS=60 RATE_LIMIT_SECS=10 cargo run
 | `MAPS_CONFIG` | `maps.json` | Maps configuration file path |
 | `CACHE_DURATION_SECS` | `3` | Cache expiry time in seconds |
 | `RATE_LIMIT_SECS` | `3` | Rate limit interval in seconds |
+| `ANDROID_REPO_URL` | (empty) | GitHub repository URL for Android app releases |
+| `WEB_REPO_URL` | (empty) | GitHub repository URL for Web app releases |
+
+## API Endpoints
+
+### GET /api/ping
+
+Health check endpoint that returns "pong".
+
+### GET /api/version
+
+Returns the latest release information for Android and Web applications configured through environment variables. The endpoint fetches the latest release information from GitHub repositories.
+
+#### Response Format
+
+```json
+{
+  "android": {
+    "version": "v2.0.0",
+    "url": "https://github.com/owner/android-repo/releases/tag/v2.0.0"
+  },
+  "web": {
+    "version": "v1.5.0",
+    "url": "https://github.com/owner/web-repo/releases/tag/v1.5.0"
+  }
+}
+```
+
+If a repository URL is not configured or the repository has no releases, the corresponding fields will be `null`:
+
+```json
+{
+  "android": {
+    "version": null,
+    "url": null
+  },
+  "web": {
+    "version": null,
+    "url": null
+  }
+}
+```
+
+#### Configuration Example
+
+```bash
+# Set repository URLs when running the server
+ANDROID_REPO_URL=https://github.com/your-org/android-app \
+WEB_REPO_URL=https://github.com/your-org/web-app \
+cargo run
+
+# Or in Docker
+docker run -e ANDROID_REPO_URL=https://github.com/your-org/android-app \
+           -e WEB_REPO_URL=https://github.com/your-org/web-app \
+           -p 8080:5800 \
+           rwrs-server
+```
+
+**Note**: Only GitHub repository URLs are supported. The API will return null for non-GitHub URLs.
+
+### GET /api/maps
+
+Returns game map configuration data. See the Maps Configuration section below for details.
+
+### GET /api/server_list
+
+Proxies requests to the Running with Rifles game server list API. Supports query parameters for filtering.
 
 ## Maps Configuration
 
-The server provides a `/api/maps` endpoint that returns game map configuration data. Maps are configured through a JSON file specified by the `MAPS_CONFIG` environment variable (default: `maps.json`).
+Maps are configured through a JSON file specified by the `MAPS_CONFIG` environment variable (default: `maps.json`). The configuration is exposed via the `/api/maps` endpoint.
 
 ### Custom Configuration File Path
 
@@ -212,7 +279,12 @@ This approach runs the backend (rwrs-server) and frontend (rwrs-another-page) in
 2. Start the rwrs-server container:
    ```bash
    docker pull zhaozisong0/rwrs-server:latest
-   docker run -d --name rwrs-server --network rwrs-network -e HOST=0.0.0.0 -e PORT=80 zhaozisong0/rwrs-server:latest
+   docker run -d --name rwrs-server --network rwrs-network \
+     -e HOST=0.0.0.0 \
+     -e PORT=80 \
+     -e ANDROID_REPO_URL=https://github.com/your-org/android-app \
+     -e WEB_REPO_URL=https://github.com/your-org/web-app \
+     zhaozisong0/rwrs-server:latest
    ```
 
 3. Start the rwrs-another-page container:
@@ -232,7 +304,12 @@ You can also deploy by serving the frontend directly from the rwrs-server's stat
 1. Pull and run the rwrs-server container:
    ```bash
    docker pull zhaozisong0/rwrs-server:latest
-   docker run -d -p 80:80 --name rwrs-server -e HOST=0.0.0.0 -e PORT=80 zhaozisong0/rwrs-server:latest
+   docker run -d -p 80:80 --name rwrs-server \
+     -e HOST=0.0.0.0 \
+     -e PORT=80 \
+     -e ANDROID_REPO_URL=https://github.com/your-org/android-app \
+     -e WEB_REPO_URL=https://github.com/your-org/web-app \
+     zhaozisong0/rwrs-server:latest
    ```
 
 2. Copy the frontend build to the container's static directory:
@@ -243,7 +320,11 @@ You can also deploy by serving the frontend directly from the rwrs-server's stat
 
    Or mount the directory when starting the container:
    ```bash
-   docker run -d -p 80:80 --name rwrs-server -e HOST=0.0.0.0 -e PORT=80 \
+   docker run -d -p 80:80 --name rwrs-server \
+     -e HOST=0.0.0.0 \
+     -e PORT=80 \
+     -e ANDROID_REPO_URL=https://github.com/your-org/android-app \
+     -e WEB_REPO_URL=https://github.com/your-org/web-app \
      -v $(pwd)/dist:/static \
      -v $(pwd)/maps.json:/maps.json \
      zhaozisong0/rwrs-server:latest
@@ -255,8 +336,11 @@ If you want to use a custom location for the maps configuration:
 
 ```bash
 docker run -d -p 80:80 --name rwrs-server \
-  -e HOST=0.0.0.0 -e PORT=80 \
+  -e HOST=0.0.0.0 \
+  -e PORT=80 \
   -e MAPS_CONFIG=/config/custom-maps.json \
+  -e ANDROID_REPO_URL=https://github.com/your-org/android-app \
+  -e WEB_REPO_URL=https://github.com/your-org/web-app \
   -v $(pwd)/dist:/static \
   -v $(pwd)/config/custom-maps.json:/config/custom-maps.json \
   zhaozisong0/rwrs-server:latest
@@ -277,6 +361,8 @@ services:
       - HOST=0.0.0.0
       - PORT=80
       - MAPS_CONFIG=/config/maps.json
+      - ANDROID_REPO_URL=https://github.com/your-org/android-app
+      - WEB_REPO_URL=https://github.com/your-org/web-app
     restart: always
     volumes:
       # Mount frontend build to static directory
@@ -299,6 +385,8 @@ services:
       - PORT=5800
       - MAPS_CONFIG=/app/config/custom-maps.json
       - CACHE_DURATION_SECS=10
+      - ANDROID_REPO_URL=https://github.com/your-org/android-app
+      - WEB_REPO_URL=https://github.com/your-org/web-app
     restart: always
     volumes:
       - ./dist:/static
