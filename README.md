@@ -2,6 +2,12 @@
 
 Backend server for [rwrs-another-page](https://github.com/Kreedzt/rwrs-another-page).
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=your-username_rwrs-server&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=your-username_rwrs-server)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=your-username_rwrs-server&metric=coverage)](https://sonarcloud.io/summary/new_code?id=your-username_rwrs-server)
+[![codecov](https://codecov.io/gh/Kreedzt/rwrs-server/branch/master/graph/badge.svg?token=MWGXZH7GO9)](https://codecov.io/gh/Kreedzt/rwrs-server)
+![CI](https://github.com/Kreedzt/rwrs-server/actions/workflows/test.yml/badge.svg?branch=master)
+[![Docker Image Size](https://badgen.net/docker/size/zhaozisong0/rwrs-server?icon=docker&label=image%20size)](https://hub.docker.com/r/zhaozisong0/rwrs-server/)
+
 ## Introduction
 
 This project serves as the backend for [rwrs-another-page](https://github.com/Kreedzt/rwrs-another-page), developed using Rust and the Salvo framework. Its primary function is to proxy API requests for the Running with Rifles game server list, provide static file serving, and serve game map configuration data.
@@ -464,10 +470,32 @@ open target/llvm-cov/html/index.html
 
 GitHub Actions automatically runs:
 - Unit tests across multiple Rust versions (stable, beta, nightly)
-- Code coverage reporting
+- Code coverage reporting (Codecov)
+- SonarQube quality analysis
 - Clippy linting
 - Code formatting checks
 - Security audits
+
+### SonarQube Quality Analysis
+
+The project integrates with SonarQube/SonarCloud for comprehensive code quality analysis:
+
+**What it analyzes:**
+- Code coverage integration
+- Code complexity and maintainability
+- Security vulnerabilities
+- Code smells and technical debt
+- Duplicated code detection
+
+**Configuration:**
+- Analysis runs after all tests pass
+- Only for main branch and pull requests
+- Quality Gate enforcement can block merges if quality standards are not met
+
+**Setup Requirements:**
+1. Set `SONAR_TOKEN` in GitHub repository secrets
+2. Update `sonar-project.properties` with your organization details
+3. Configure SonarCloud/SonarQube project settings
 
 ## License
 
