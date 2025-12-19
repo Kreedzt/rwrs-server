@@ -1,6 +1,45 @@
-comment: # this is a top-level key
-  layout: ' diff, flags, files'
+# Codecov configuration for rwrs-server
+coverage:
+  status:
+    project:
+      default:
+        # Require at least 80% coverage for the project
+        target: 80%
+        threshold: 2%  # Allow coverage to drop by 2% before failing
+        base: auto
+        if_ci_failed: error
+    patch:
+      default:
+        # Require at least 75% coverage on new code
+        target: 75%
+        threshold: 2%
+        if_ci_failed: error
+
+# Comment settings for pull requests
+comment:
+  layout: 'diff, flags, files'
   behavior: default
-  require_changes: false # if true: only post the comment if coverage changes
-  require_base: false # [true :: must have a base report to post]
-  require_head: true # [true :: must have a head report to post]
+  require_changes: false
+  require_base: false
+  require_head: true
+
+# Coverage collection settings
+ignore:
+  - "src/main.rs"  # Don't require full coverage on main binary
+  - "tests/**"     # Ignore test files themselves
+  - "**/*_tests.rs" # Ignore test modules
+
+# Flags for different parts of the codebase
+flags:
+  library:
+    paths:
+      - src/lib.rs
+    carryforward: true
+  handlers:
+    paths:
+      - src/main.rs
+    carryforward: true
+
+# GitHub integration
+github_checks:
+  annotations: true
