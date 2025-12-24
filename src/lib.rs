@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -162,7 +163,7 @@ impl Config {
 }
 
 pub struct ApiCache {
-    cache: Arc<RwLock<Option<CachedResponse>>>,
+    cache: Arc<RwLock<HashMap<String, CachedResponse>>>,
     last_request_time: Arc<RwLock<Instant>>,
     rate_limit_duration: Duration,
     cache_expiry_duration: Duration,
@@ -171,7 +172,7 @@ pub struct ApiCache {
 impl ApiCache {
     pub fn new(rate_limit_secs: u64, cache_expiry_secs: u64) -> Self {
         Self {
-            cache: Arc::new(RwLock::new(None)),
+            cache: Arc::new(RwLock::new(HashMap::new())),
             last_request_time: Arc::new(RwLock::new(
                 Instant::now() - Duration::from_secs(rate_limit_secs + 1),
             )),
@@ -183,18 +184,18 @@ impl ApiCache {
     pub async fn get_cached_response(&self, url: &str) -> Result<(String, u16), String> {
         let now = Instant::now();
 
-        // Check cache
+        // Check cache for this specific URL
         {
             let cache_guard = self.cache.read().await;
-            if let Some(cached) = cache_guard.as_ref() {
+            if let Some(cached) = cache_guard.get(url) {
                 if !cached.is_expired(self.cache_expiry_duration) {
-                    info!("Cache hit, age: {:?}", cached.timestamp.elapsed());
+                    info!("Cache hit for {}, age: {:?}", url, cached.timestamp.elapsed());
                     return Ok((cached.data.clone(), cached.status_code));
                 } else {
-                    info!("Cache expired, refreshing required");
+                    info!("Cache expired for {}, refreshing required", url);
                 }
             } else {
-                info!("No cache data available, fetching from API");
+                info!("No cache data available for {}, fetching from API", url);
             }
         }
 
@@ -204,7 +205,7 @@ impl ApiCache {
             if now.duration_since(*last_request_guard) < self.rate_limit_duration {
                 warn!("Rate limit exceeded, returning cached data");
                 let cache_guard = self.cache.read().await;
-                if let Some(cached) = cache_guard.as_ref() {
+                if let Some(cached) = cache_guard.get(url) {
                     return Ok((cached.data.clone(), cached.status_code));
                 } else {
                     return Err("Rate limit exceeded and no cache available".to_string());
@@ -232,8 +233,8 @@ impl ApiCache {
                 match response.text().await {
                     Ok(text) => {
                         info!("Successfully fetched {} bytes from API", text.len());
-                        // Cache the response
-                        self.update_cache(text.clone(), status).await;
+                        // Cache the response with URL as key
+                        self.update_cache(url.to_string(), text.clone(), status).await;
                         Ok((text, status))
                     }
                     Err(e) => {
@@ -249,10 +250,10 @@ impl ApiCache {
         }
     }
 
-    async fn update_cache(&self, data: String, status_code: u16) {
+    async fn update_cache(&self, url: String, data: String, status_code: u16) {
         let cached_response = CachedResponse::new(data, status_code);
         let mut cache_guard = self.cache.write().await;
-        *cache_guard = Some(cached_response);
+        cache_guard.insert(url, cached_response);
     }
 }
 
