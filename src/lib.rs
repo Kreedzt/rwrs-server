@@ -189,7 +189,11 @@ impl ApiCache {
             let cache_guard = self.cache.read().await;
             if let Some(cached) = cache_guard.get(url) {
                 if !cached.is_expired(self.cache_expiry_duration) {
-                    info!("Cache hit for {}, age: {:?}", url, cached.timestamp.elapsed());
+                    info!(
+                        "Cache hit for {}, age: {:?}",
+                        url,
+                        cached.timestamp.elapsed()
+                    );
                     return Ok((cached.data.clone(), cached.status_code));
                 } else {
                     info!("Cache expired for {}, refreshing required", url);
@@ -234,7 +238,8 @@ impl ApiCache {
                     Ok(text) => {
                         info!("Successfully fetched {} bytes from API", text.len());
                         // Cache the response with URL as key
-                        self.update_cache(url.to_string(), text.clone(), status).await;
+                        self.update_cache(url.to_string(), text.clone(), status)
+                            .await;
                         Ok((text, status))
                     }
                     Err(e) => {

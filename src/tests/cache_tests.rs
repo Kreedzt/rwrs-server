@@ -4,8 +4,8 @@ mod tests {
     use std::time::Duration;
     use tokio::time::sleep;
     use wiremock::{
-        matchers::{method, path},
         Mock, MockServer, ResponseTemplate,
+        matchers::{method, path},
     };
 
     /// Helper function to create a test cache with short durations
