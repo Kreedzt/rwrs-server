@@ -133,10 +133,7 @@ async fn main() {
     info!("listening at {}", listen_addr);
 
     // Create cache instance
-    let cache = Arc::new(ApiCache::new(
-        config.rate_limit_duration_secs,
-        config.cache_duration_secs,
-    ));
+    let cache = Arc::new(ApiCache::new(config.cache_duration_secs));
 
     // Load maps configuration
     info!(
@@ -154,11 +151,7 @@ async fn main() {
         }
     };
 
-    info!("Cache and rate limiting mechanism enabled:");
-    info!(
-        "  - Rate limit interval: {} seconds",
-        config.rate_limit_duration_secs
-    );
+    info!("Cache mechanism enabled:");
     info!(
         "  - Cache expiry time: {} seconds",
         config.cache_duration_secs
