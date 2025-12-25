@@ -10,7 +10,7 @@ mod tests {
 
     /// Helper function to create a test cache with short durations
     fn create_test_cache() -> ApiCache {
-        ApiCache::new(0, 10) // 0 second rate limit (disabled), 10 second cache expiry
+        ApiCache::new(10) // 10 second cache expiry
     }
 
     #[tokio::test]
@@ -91,7 +91,7 @@ mod tests {
             .await;
 
         // Create cache with 2 second expiry
-        let cache = ApiCache::new(0, 2);
+        let cache = ApiCache::new(2);
         let url = format!("{}/test.php", mock_server.uri());
 
         // First request
@@ -196,33 +196,29 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_rate_limit_returns_cached_data() {
+    async fn test_cache_prevents_api_calls() {
         let mock_server = MockServer::start().await;
 
+        // Mock endpoint - should only be called once
         Mock::given(method("GET"))
-            .and(path("/limited"))
-            .respond_with(ResponseTemplate::new(200).set_body_string("initial_data"))
+            .and(path("/cached"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("cached_data"))
+            .expect(1)
             .mount(&mock_server)
             .await;
 
-        // Cache with 3 second rate limit
-        let cache = ApiCache::new(3, 30);
-        let url = format!("{}/limited", mock_server.uri());
+        let cache = ApiCache::new(30); // 30 second cache
+        let url = format!("{}/cached", mock_server.uri());
 
-        // First request
+        // First request - hits API
         let result1 = cache.get_cached_response(&url).await.unwrap();
-        assert_eq!(result1.0, "initial_data");
+        assert_eq!(result1.0, "cached_data");
 
-        // Update mock to return different data
-        Mock::given(method("GET"))
-            .and(path("/limited"))
-            .respond_with(ResponseTemplate::new(200).set_body_string("new_data"))
-            .mount(&mock_server)
-            .await;
-
-        // Immediate second request - rate limited, should return cached data
-        let result2 = cache.get_cached_response(&url).await.unwrap();
-        assert_eq!(result2.0, "initial_data"); // Still cached data
+        // Multiple subsequent requests - all from cache
+        for _ in 0..5 {
+            let result = cache.get_cached_response(&url).await.unwrap();
+            assert_eq!(result.0, "cached_data");
+        }
     }
 
     #[tokio::test]

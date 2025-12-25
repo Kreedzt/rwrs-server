@@ -4,7 +4,7 @@ use std::env;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MapsConfig {
@@ -120,7 +120,6 @@ pub struct Config {
     pub port: String,
     pub host: String,
     pub cache_duration_secs: u64,
-    pub rate_limit_duration_secs: u64,
     pub maps_config_path: String,
     pub android_repo_url: Option<String>,
     pub web_repo_url: Option<String>,
@@ -137,12 +136,6 @@ impl Config {
             .and_then(|s| s.parse().ok())
             .unwrap_or(3);
 
-        // Rate limit time in seconds, default 3
-        let rate_limit_duration_secs = env::var("RATE_LIMIT_SECS")
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(3);
-
         // Maps config file path, default "maps.json"
         let maps_config_path = env::var("MAPS_CONFIG").unwrap_or_else(|_| "maps.json".to_string());
 
@@ -154,7 +147,6 @@ impl Config {
             port: port.to_string(),
             host: host.to_string(),
             cache_duration_secs,
-            rate_limit_duration_secs,
             maps_config_path,
             android_repo_url,
             web_repo_url,
@@ -164,26 +156,18 @@ impl Config {
 
 pub struct ApiCache {
     cache: Arc<RwLock<HashMap<String, CachedResponse>>>,
-    last_request_time: Arc<RwLock<Instant>>,
-    rate_limit_duration: Duration,
     cache_expiry_duration: Duration,
 }
 
 impl ApiCache {
-    pub fn new(rate_limit_secs: u64, cache_expiry_secs: u64) -> Self {
+    pub fn new(cache_expiry_secs: u64) -> Self {
         Self {
             cache: Arc::new(RwLock::new(HashMap::new())),
-            last_request_time: Arc::new(RwLock::new(
-                Instant::now() - Duration::from_secs(rate_limit_secs + 1),
-            )),
-            rate_limit_duration: Duration::from_secs(rate_limit_secs),
             cache_expiry_duration: Duration::from_secs(cache_expiry_secs),
         }
     }
 
     pub async fn get_cached_response(&self, url: &str) -> Result<(String, u16), String> {
-        let now = Instant::now();
-
         // Check cache for this specific URL
         {
             let cache_guard = self.cache.read().await;
@@ -201,26 +185,6 @@ impl ApiCache {
             } else {
                 info!("No cache data available for {}, fetching from API", url);
             }
-        }
-
-        // Check rate limiting
-        {
-            let last_request_guard = self.last_request_time.read().await;
-            if now.duration_since(*last_request_guard) < self.rate_limit_duration {
-                warn!("Rate limit exceeded, returning cached data");
-                let cache_guard = self.cache.read().await;
-                if let Some(cached) = cache_guard.get(url) {
-                    return Ok((cached.data.clone(), cached.status_code));
-                } else {
-                    return Err("Rate limit exceeded and no cache available".to_string());
-                }
-            }
-        }
-
-        // Update last request time
-        {
-            let mut last_request_guard = self.last_request_time.write().await;
-            *last_request_guard = now;
         }
 
         // Make actual API call

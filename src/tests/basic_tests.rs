@@ -4,14 +4,22 @@ mod tests {
 
     #[tokio::test]
     async fn test_config_default_values() {
-        // Create config without environment variables to test defaults
+        // Remove environment variables to test defaults
+        unsafe {
+            std::env::remove_var("HOST");
+            std::env::remove_var("PORT");
+            std::env::remove_var("CACHE_DURATION_SECS");
+            std::env::remove_var("MAPS_CONFIG");
+            std::env::remove_var("ANDROID_REPO_URL");
+            std::env::remove_var("WEB_REPO_URL");
+        }
+
         let config = Config::new().unwrap();
 
         // Test default values
         assert_eq!(config.host, "127.0.0.1");
         assert_eq!(config.port, "5800");
         assert_eq!(config.cache_duration_secs, 3);
-        assert_eq!(config.rate_limit_duration_secs, 3);
         assert_eq!(config.maps_config_path, "maps.json");
         assert!(config.android_repo_url.is_none());
         assert!(config.web_repo_url.is_none());
