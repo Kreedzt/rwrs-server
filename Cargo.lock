@@ -202,9 +202,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
-version = "1.10.0"
+version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f61dac84819c6588b558454b194026eb1f09c293b9036ae9b159e74e73ab6cf9"
+checksum = "1e748733b7cbc798e1434b6ac524f0c1ff2ab456fe201501e6497c8417a4fc33"
 
 [[package]]
 name = "cc"
@@ -416,12 +416,12 @@ dependencies = [
 
 [[package]]
 name = "deranged"
-version = "0.3.11"
+version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b42b6fa04a440b495c8b04d0e71b707c585f83cb9cb28cf8cd0d976c315e31b4"
+checksum = "7cd812cc2bc1d69d4764bd80df88b4317eaef9e773c75226407d9bc0876b211c"
 dependencies = [
  "powerfmt",
- "serde",
+ "serde_core",
 ]
 
 [[package]]
@@ -746,8 +746,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43a49c392881ce6d5c3b8cb70f98717b7c07aabbdff06687b9030dbfbe2725f8"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "wasi 0.13.3+wasi-0.2.2",
+ "wasm-bindgen",
  "windows-targets 0.52.6",
 ]
 
@@ -1167,9 +1169,9 @@ dependencies = [
 
 [[package]]
 name = "jsonwebtoken"
-version = "10.2.0"
+version = "10.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c76e1c7d7df3e34443b3621b459b066a7b79644f059fc8b2db7070c825fd417e"
+checksum = "0529410abe238729a60b108898784df8984c87f6054c9c4fcacc47e4803c1ce1"
 dependencies = [
  "base64 0.22.1",
  "ed25519-dalek",
@@ -1248,6 +1250,12 @@ name = "log"
 version = "0.4.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30bde2b3dc3671ae49d8e2e9f044c7c005836e7a023ee57cffa25ab82764bb9e"
+
+[[package]]
+name = "lru-slab"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "112b39cec0b298b6c1999fee3e31427f74f676e4cb9879ed1a121b43661a4154"
 
 [[package]]
 name = "memchr"
@@ -1418,9 +1426,9 @@ dependencies = [
 
 [[package]]
 name = "num-conv"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51d515d32fb182ee37cda2ccdcb92950d6a3c2893aa280e540671c2cd0f3b1d9"
+checksum = "cf97ec579c3c42f953ef76dbf8d55ac91fb219dde70e49aa4a6b7d74e9919050"
 
 [[package]]
 name = "num-integer"
@@ -1717,13 +1725,14 @@ dependencies = [
 
 [[package]]
 name = "quinn-proto"
-version = "0.11.9"
+version = "0.11.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2fe5ef3495d7d2e377ff17b1a8ce2ee2ec2a18cde8b6ad6619d65d0701c135d"
+checksum = "434b42fec591c96ef50e21e886936e66d3cc3f737104fdb9b737c40ffb94c098"
 dependencies = [
  "bytes",
- "getrandom 0.2.15",
- "rand 0.8.5",
+ "getrandom 0.3.1",
+ "lru-slab",
+ "rand 0.9.0",
  "ring",
  "rustc-hash",
  "rustls",
@@ -1913,9 +1922,9 @@ dependencies = [
 
 [[package]]
 name = "ring"
-version = "0.17.11"
+version = "0.17.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da5349ae27d3887ca812fb375b45a4fbb36d8d12d2df394968cd86e35683fe73"
+checksum = "a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7"
 dependencies = [
  "cc",
  "cfg-if",
@@ -1927,9 +1936,9 @@ dependencies = [
 
 [[package]]
 name = "rsa"
-version = "0.9.9"
+version = "0.9.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40a0376c50d0358279d9d643e4bf7b7be212f1f4ff1da9070a7b54d22ef75c88"
+checksum = "b8573f03f5883dcaebdfcf4725caa1ecb9c15b2ef50c43a07b816e06799bb12d"
 dependencies = [
  "const-oid",
  "digest",
@@ -2094,9 +2103,9 @@ checksum = "6ea1a2d0a644769cc99faa24c3ad26b379b786fe7c36fd3c546254801650e6dd"
 
 [[package]]
 name = "salvo"
-version = "0.85.0"
+version = "0.86.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a0572f97daf740aec2898b4766e9572617ae2fba416a5f85de340b6e2a32ce9"
+checksum = "6e95b3c50eb69ebd641594a2924e8139e6abb890e2c3095ea5792ac53f7beaf6"
 dependencies = [
  "salvo-jwt-auth",
  "salvo-proxy",
@@ -2107,9 +2116,9 @@ dependencies = [
 
 [[package]]
 name = "salvo-jwt-auth"
-version = "0.85.0"
+version = "0.86.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c2f4cb3b83ad27ac8f81684eb1f7dbc0fb339a44e292ca63fddb870e303c7a2"
+checksum = "1b4f2e377b859c6cbf278fe75844d53c213de7ceef0ea57dbb995f05ff49f47d"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -2127,9 +2136,9 @@ dependencies = [
 
 [[package]]
 name = "salvo-proxy"
-version = "0.85.0"
+version = "0.86.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3032a022ccf9d50fd420412dc265c7729f65f30646650a17eb61a8d5575b880"
+checksum = "f495f51842bab8c72ba04cc9b88da78be1db87b64f4209631933d985ab41ad5c"
 dependencies = [
  "fastrand",
  "futures-util",
@@ -2142,13 +2151,14 @@ dependencies = [
  "salvo_core",
  "tokio",
  "tracing",
+ "url",
 ]
 
 [[package]]
 name = "salvo-serde-util"
-version = "0.85.0"
+version = "0.86.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb7587e297e6b75aee58de7b2d5a24f7378f1ac50a3bf9739fa88821d146f04c"
+checksum = "134b3f2f338ed37d5d77c4225cac0530c2c3801ec6ae2c4953fa85a156d1565c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2157,9 +2167,9 @@ dependencies = [
 
 [[package]]
 name = "salvo-serve-static"
-version = "0.85.0"
+version = "0.86.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c31a971fc487cf728e589f08996bab0153647bad3e49d35fec5df7c6796611e6"
+checksum = "510de973db8b46cd3e920b8bb4ae953ba1acb38a8534d71809bc126d263ea86e"
 dependencies = [
  "hex",
  "mime",
@@ -2177,9 +2187,9 @@ dependencies = [
 
 [[package]]
 name = "salvo_core"
-version = "0.85.0"
+version = "0.86.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4f710aaf46666f08b3cc4b8ad761e3a00d381a2abe7e2d6448d0f594be72ab7"
+checksum = "253801dc134830c0f56f964b42b3cf92795b33f46cfca08f3aa1af5110c7d400"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2230,9 +2240,9 @@ dependencies = [
 
 [[package]]
 name = "salvo_extra"
-version = "0.85.0"
+version = "0.86.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7380e3bc5f24ad9529e929fd391715ae3def92feefc9fece038f14a2e3b86ec3"
+checksum = "cdd3415840f3f9cf56de6072acb6afb79c43897f77cca15a233f2b8e809d6b68"
 dependencies = [
  "base64 0.22.1",
  "etag",
@@ -2252,9 +2262,9 @@ dependencies = [
 
 [[package]]
 name = "salvo_macros"
-version = "0.85.0"
+version = "0.86.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8191db21784912e4a08e800005761e3f25412e08dd9fd20a1a6ff22270afa8bd"
+checksum = "ec39eb56a5b62d6a9bbe5c1521f7f8a296eecf0489d0ad575f35be05ec4dbf6b"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -2333,10 +2343,11 @@ checksum = "d767eb0aabc880b29956c35734170f26ed551a859dbd361d140cdbeca61ab1e2"
 
 [[package]]
 name = "serde"
-version = "1.0.218"
+version = "1.0.228"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8dfc9d19bdbf6d17e22319da49161d5d0108e4188e8b680aef6299eed22df60"
+checksum = "9a8e94ea7f378bd32cbbd37198a4a91436180c5bb472411e48b5ec2e2124ae9e"
 dependencies = [
+ "serde_core",
  "serde_derive",
 ]
 
@@ -2353,10 +2364,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_derive"
-version = "1.0.218"
+name = "serde_core"
+version = "1.0.228"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f09503e191f4e797cb8aac08e9a4a4695c5edf6a2e70e376d961ddd5c969f82b"
+checksum = "41d385c7d4ca58e59fc732af25c3983b67ac852c1a25000afe1175de458b67ad"
+dependencies = [
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.228"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d540f220d3187173da220f885ab66608367b6574e925011a9353e4badda91d79"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2635,30 +2655,30 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.37"
+version = "0.3.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35e7868883861bd0e56d9ac6efcaaca0d6d5d82a2a7ec8209ff492c07cf37b21"
+checksum = "743bd48c283afc0388f9b8827b976905fb217ad9e647fae3a379a9283c4def2c"
 dependencies = [
  "deranged",
  "itoa",
  "num-conv",
  "powerfmt",
- "serde",
+ "serde_core",
  "time-core",
  "time-macros",
 ]
 
 [[package]]
 name = "time-core"
-version = "0.1.2"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef927ca75afb808a4d64dd374f00a2adf8d0fcff8e7b184af886c3c87ec4a3f3"
+checksum = "7694e1cfe791f8d31026952abf09c69ca6f6fa4e1a1229e18988f06a04a12dca"
 
 [[package]]
 name = "time-macros"
-version = "0.2.19"
+version = "0.2.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2834e6017e3e5e4b9834939793b282bc03b37a3336245fa820e35e233e2a85de"
+checksum = "2e70e4c5a0e0a8a4823ad65dfe1a6930e4f4d756dcd9dd7939022b5e8c501215"
 dependencies = [
  "num-conv",
  "time-core",
