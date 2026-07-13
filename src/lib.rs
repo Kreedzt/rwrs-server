@@ -157,13 +157,23 @@ impl Config {
 pub struct ApiCache {
     cache: Arc<RwLock<HashMap<String, CachedResponse>>>,
     cache_expiry_duration: Duration,
+    client: reqwest::Client,
 }
 
 impl ApiCache {
     pub fn new(cache_expiry_secs: u64) -> Self {
+        // Build the HTTP client once and reuse it across all requests.
+        // Creating a Client per request accumulates connection pools / TLS
+        // state and is the primary source of memory growth.
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(10))
+            .build()
+            .expect("failed to build reqwest client");
+
         Self {
             cache: Arc::new(RwLock::new(HashMap::new())),
             cache_expiry_duration: Duration::from_secs(cache_expiry_secs),
+            client,
         }
     }
 
@@ -187,14 +197,9 @@ impl ApiCache {
             }
         }
 
-        // Make actual API call
+        // Make actual API call using the shared client
         info!("Making request to external API: {}", url);
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(10))
-            .build()
-            .unwrap();
-
-        match client.get(url).send().await {
+        match self.client.get(url).send().await {
             Ok(response) => {
                 let status = response.status().as_u16();
                 info!("Received response with status: {}", status);
@@ -222,6 +227,9 @@ impl ApiCache {
     async fn update_cache(&self, url: String, data: String, status_code: u16) {
         let cached_response = CachedResponse::new(data, status_code);
         let mut cache_guard = self.cache.write().await;
+        // Drop stale entries so distinct query strings can't grow the map
+        // unbounded over time.
+        cache_guard.retain(|_, cached| !cached.is_expired(self.cache_expiry_duration));
         cache_guard.insert(url, cached_response);
     }
 }
@@ -242,11 +250,16 @@ pub async fn get_latest_tag(repo_url: &str) -> Option<(String, String)> {
         owner, repo
     );
 
-    let client = reqwest::Client::builder()
-        .user_agent("rwrs-server")
-        .timeout(Duration::from_secs(10))
-        .build()
-        .ok()?;
+    // Reuse a single client across all version lookups instead of rebuilding
+    // one per request.
+    static VERSION_CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+    let client = VERSION_CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .user_agent("rwrs-server")
+            .timeout(Duration::from_secs(10))
+            .build()
+            .expect("failed to build reqwest client")
+    });
 
     match client.get(&api_url).send().await {
         Ok(response) => {
