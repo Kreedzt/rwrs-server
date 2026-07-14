@@ -83,6 +83,78 @@ impl MapsConfig {
     }
 }
 
+/// Header announcement returned to the frontend.
+///
+/// `html` is operator-controlled rich text loaded from a file at startup and
+/// rendered verbatim by the frontend. `enabled` tells the frontend whether to
+/// show anything at all.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Announcement {
+    pub enabled: bool,
+    pub html: String,
+}
+
+impl Default for Announcement {
+    fn default() -> Self {
+        Self::disabled()
+    }
+}
+
+impl Announcement {
+    /// An announcement that the frontend should not display.
+    pub fn disabled() -> Self {
+        Self {
+            enabled: false,
+            html: String::new(),
+        }
+    }
+
+    /// Load announcement HTML from a file.
+    ///
+    /// Missing file, empty/whitespace-only content, or a read error all degrade
+    /// to a disabled announcement instead of failing, mirroring how map config
+    /// loading tolerates errors.
+    pub async fn load_from_file(file_path: &str) -> Self {
+        let full_path = if std::path::Path::new(file_path).is_absolute() {
+            file_path.to_string()
+        } else {
+            match std::env::current_dir() {
+                Ok(dir) => dir.join(file_path).to_string_lossy().to_string(),
+                Err(e) => {
+                    error!("Failed to get current directory: {}", e);
+                    file_path.to_string()
+                }
+            }
+        };
+
+        info!(
+            "Loading announcement from: {} (full path: {})",
+            file_path, full_path
+        );
+
+        match tokio::fs::read_to_string(&full_path).await {
+            Ok(content) if !content.trim().is_empty() => {
+                info!("Loaded announcement ({} bytes)", content.len());
+                Self {
+                    enabled: true,
+                    html: content,
+                }
+            }
+            Ok(_) => {
+                info!("Announcement file '{}' is empty, disabling", full_path);
+                Self::disabled()
+            }
+            Err(e) => {
+                error!(
+                    "Failed to read announcement file '{}': {}. Announcement disabled.",
+                    full_path, e
+                );
+                Self::disabled()
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VersionInfo {
     pub android: RepoVersion,
@@ -123,6 +195,7 @@ pub struct Config {
     pub maps_config_path: String,
     pub android_repo_url: Option<String>,
     pub web_repo_url: Option<String>,
+    pub announcement_path: Option<String>,
 }
 
 impl Config {
@@ -143,6 +216,9 @@ impl Config {
         let android_repo_url = env::var("ANDROID_REPO_URL").ok();
         let web_repo_url = env::var("WEB_REPO_URL").ok();
 
+        // Optional path to the header announcement HTML file. Unset = no announcement.
+        let announcement_path = env::var("ANNOUNCEMENT_PATH").ok();
+
         Ok(Config {
             port: port.to_string(),
             host: host.to_string(),
@@ -150,6 +226,7 @@ impl Config {
             maps_config_path,
             android_repo_url,
             web_repo_url,
+            announcement_path,
         })
     }
 }

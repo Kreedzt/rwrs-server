@@ -5,7 +5,9 @@ use std::sync::Arc;
 use tracing::{error, info};
 
 // Import from lib.rs
-use rwrs_server::{ApiCache, Config, MapsConfig, RepoVersion, VersionInfo, get_latest_tag};
+use rwrs_server::{
+    Announcement, ApiCache, Config, MapsConfig, RepoVersion, VersionInfo, get_latest_tag,
+};
 
 #[handler]
 async fn ping() -> &'static str {
@@ -18,6 +20,12 @@ async fn maps_handler(depot: &mut Depot, res: &mut Response) {
     let maps = maps_config.get_maps();
 
     res.render(Json(&maps));
+}
+
+#[handler]
+async fn announcement_handler(depot: &mut Depot, res: &mut Response) {
+    let announcement = depot.obtain::<Arc<Announcement>>().unwrap();
+    res.render(Json(announcement.as_ref()));
 }
 
 #[handler]
@@ -151,6 +159,13 @@ async fn main() {
         }
     };
 
+    // Load header announcement (optional). Read once at startup; updating the
+    // announcement means editing the file and restarting the server.
+    let announcement = match config.announcement_path {
+        Some(ref path) => Arc::new(Announcement::load_from_file(path).await),
+        None => Arc::new(Announcement::disabled()),
+    };
+
     info!("Cache mechanism enabled:");
     info!(
         "  - Cache expiry time: {} seconds",
@@ -162,6 +177,13 @@ async fn main() {
     }
     if let Some(ref url) = config.web_repo_url {
         info!("  - Web repo URL: {}", url);
+    }
+    match config.announcement_path {
+        Some(ref path) => info!(
+            "  - Announcement file: {} (enabled: {})",
+            path, announcement.enabled
+        ),
+        None => info!("  - Announcement: not configured"),
     }
 
     // Create config for sharing
@@ -181,6 +203,12 @@ async fn main() {
                 .path("/api/maps")
                 .hoop(affix_state::inject(maps_config.clone()))
                 .get(maps_handler),
+        )
+        .push(
+            Router::new()
+                .path("/api/announcement")
+                .hoop(affix_state::inject(announcement.clone()))
+                .get(announcement_handler),
         )
         .push(
             Router::new()

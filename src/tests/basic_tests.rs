@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::{Config, MapEntry, MapsConfig, RepoVersion, VersionInfo};
+    use crate::{Announcement, Config, MapEntry, MapsConfig, RepoVersion, VersionInfo};
 
     #[tokio::test]
     async fn test_config_default_values() {
@@ -12,6 +12,7 @@ mod tests {
             std::env::remove_var("MAPS_CONFIG");
             std::env::remove_var("ANDROID_REPO_URL");
             std::env::remove_var("WEB_REPO_URL");
+            std::env::remove_var("ANNOUNCEMENT_PATH");
         }
 
         let config = Config::new().unwrap();
@@ -23,6 +24,53 @@ mod tests {
         assert_eq!(config.maps_config_path, "maps.json");
         assert!(config.android_repo_url.is_none());
         assert!(config.web_repo_url.is_none());
+        assert!(config.announcement_path.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_announcement_disabled_default() {
+        let announcement = Announcement::disabled();
+        assert!(!announcement.enabled);
+        assert_eq!(announcement.html, "");
+
+        // Disabled announcements still serialize to the frontend contract.
+        let json = serde_json::to_string(&announcement).unwrap();
+        assert_eq!(json, r#"{"enabled":false,"html":""}"#);
+    }
+
+    #[tokio::test]
+    async fn test_announcement_missing_file_disabled() {
+        let announcement =
+            Announcement::load_from_file("this/path/does/not/exist/announcement.html").await;
+        assert!(!announcement.enabled);
+        assert_eq!(announcement.html, "");
+    }
+
+    #[tokio::test]
+    async fn test_announcement_loads_file_content() {
+        let dir = std::env::temp_dir();
+        let path = dir.join("rwrs_test_announcement.html");
+        let html = "<div class=\"notice\">Hello</div>";
+        tokio::fs::write(&path, html).await.unwrap();
+
+        let announcement = Announcement::load_from_file(path.to_str().unwrap()).await;
+        assert!(announcement.enabled);
+        assert_eq!(announcement.html, html);
+
+        tokio::fs::remove_file(&path).await.ok();
+    }
+
+    #[tokio::test]
+    async fn test_announcement_empty_file_disabled() {
+        let dir = std::env::temp_dir();
+        let path = dir.join("rwrs_test_announcement_empty.html");
+        tokio::fs::write(&path, "   \n\t  ").await.unwrap();
+
+        let announcement = Announcement::load_from_file(path.to_str().unwrap()).await;
+        assert!(!announcement.enabled);
+        assert_eq!(announcement.html, "");
+
+        tokio::fs::remove_file(&path).await.ok();
     }
 
     #[tokio::test]
