@@ -57,6 +57,7 @@ CACHE_DURATION_SECS=60 RATE_LIMIT_SECS=10 cargo run
 | `RATE_LIMIT_SECS` | `3` | Rate limit interval in seconds |
 | `ANDROID_REPO_URL` | (empty) | GitHub repository URL for Android app releases |
 | `WEB_REPO_URL` | (empty) | GitHub repository URL for Web app releases |
+| `ANNOUNCEMENT_PATH` | (empty) | Path to an HTML file whose content is served as the header announcement |
 
 ## API Endpoints
 
@@ -118,6 +119,43 @@ docker run -e ANDROID_REPO_URL=https://github.com/your-org/android-app \
 ### GET /api/maps
 
 Returns game map configuration data. See the Maps Configuration section below for details.
+
+### GET /api/announcement
+
+Returns the header announcement to display above the page header. The HTML is loaded from the file at `ANNOUNCEMENT_PATH` once at server startup and rendered verbatim by the frontend.
+
+#### Response Format
+
+```json
+{
+  "enabled": true,
+  "html": "<div class=\"notice\">Server maintenance at 20:00 UTC</div>"
+}
+```
+
+When `ANNOUNCEMENT_PATH` is unset, the file is missing, or its content is empty, the announcement is disabled and the frontend should show nothing:
+
+```json
+{
+  "enabled": false,
+  "html": ""
+}
+```
+
+**Note**: The HTML is operator-controlled trusted content served as-is (no sanitization). Only put HTML you control in the announcement file. Updating the announcement requires editing the file and restarting the server.
+
+#### Configuration Example
+
+```bash
+# Point at an announcement HTML file
+ANNOUNCEMENT_PATH=announcement.html cargo run
+
+# Or in Docker (mount the file in)
+docker run -e ANNOUNCEMENT_PATH=/config/announcement.html \
+           -v $(pwd)/announcement.html:/config/announcement.html \
+           -p 8080:5800 \
+           rwrs-server
+```
 
 ### GET /api/server_list
 

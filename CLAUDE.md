@@ -14,6 +14,7 @@ This is a simple Rust web application using the Salvo framework:
 - **Framework**: Salvo web framework with logging, request ID, proxy, and static file serving features
 - **Proxy functionality**: Routes `/api/server_list` requests to `http://rwr.runningwithrifles.com/rwr_server_list/get_server_list.php`
 - **Static serving**: Serves files from a `static/` directory (defaults to `index.html` for unknown paths)
+- **Announcement**: `/api/announcement` returns operator-controlled header HTML loaded from the file at `ANNOUNCEMENT_PATH` (read once at startup; disabled when unset/missing/empty)
 - **Configuration**: Uses environment variables `HOST` (default: `127.0.0.1`) and `PORT` (default: `5800`)
 
 ## Development Commands
